@@ -1,180 +1,369 @@
+# 📱 Smart IoT Mobile Application
 
-# **Penjelasan Lengkap Proyek Flutter "manlogen"**
+## Arsitektur Proyek IOT Collab #4
 
-Proyek Flutter yang kamu buat bernama **manlogen**, yang bertujuan untuk membuat aplikasi mobile dengan fitur dasar berupa **Login** dan **Registrasi** pengguna. Selain itu, proyek ini sudah dipersiapkan dengan baik secara modular, sehingga kode lebih rapi, mudah dikelola, dan siap untuk dikembangkan lebih lanjut, seperti integrasi dengan backend untuk autentikasi pengguna dan visualisasi data dari sensor IoT.
+```mermaid
+flowchart TB
+    classDef hardware fill:#00b,stroke:#333,stroke-width:2px;
+    classDef network fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef backend fill:#bfb,stroke:#333,stroke-width:2px;
+    classDef frontend fill:#ff9,stroke:#333,stroke-width:2px;
+    classDef cloud fill:#f96,stroke:#333,stroke-width:2px;
 
-::: mermaid
-flowchart TD
-    A[Proyek Manlogen] --> B[assets]
-    A --> C[lib]
-    
-    B --> B1[images]
-    B1 --> B1a[widya_matador_logo.jpeg]
-    
-    C --> C1[screens]
-    C --> C2[components]
-    C --> C3[constants]
-    C --> C4[main.dart]
-    
-    C1 --> C1a[welcome.dart]
-    C1 --> C1b[login.dart]
-    C1 --> C1c[signup.dart]
-    
-    C2 --> C2a[rounded_button.dart]
-    C2 --> C2b[input_field.dart]
-    
-    C3 --> C3a[colors.dart]
-    
-    D[pubspec.yaml] --> D1[dependencies]
-    D1 --> D1a[cupertino_icons]
-    D1 --> D1b[flutter_svg]
-    
-    %% Flow aplikasi
-    subgraph AppFlow[Alur Navigasi Aplikasi]
-        F1[WelcomeScreen] -->|Login Button| F2[LoginScreen]
-        F1 -->|Sign Up Button| F3[SignUpScreen]
+    subgraph ESP32_1["ESP32 Node 1 🌡️"]
+        direction TB
+        dht22[DHT22 Temperature/Humidity Sensor]
+        led1[RGB LED Control]
+        class dht22,led1 hardware;
     end
-    
-    %% Komponen reusable
-    subgraph Components[Komponen Reusable]
-        G1[RoundedButton] --- C2a
-        G2[InputField] --- C2b
+
+    subgraph ESP32_2["ESP32 Node 2 📏"]
+        direction TB
+        a02yyuw[A02YYUW Distance Sensor]
+        hcsr04[HC-SR04 Ultrasonic Sensor]
+        led2[PWM LED Control]
+        class a02yyuw,hcsr04,led2 hardware;
     end
-    
-    %% Main execution
-    subgraph MainExecution[Eksekusi Utama]
-        H1[main.dart] -->|Run| H2[MyApp]
-        H2 -->|home:| F1
+
+    subgraph RPi["Raspberry Pi 🖥️ TCP Listener"]
+        tcpListener[TCP Data Receiver]
+        dataValidator[Data Validation]
+        logHandler[Logging Service]
+        class RPi network;
     end
-    
-    %% Future Integration
-    subgraph FutureIntegration[Integrasi Masa Depan]
-        I1[Flutter Frontend] -->|HTTP Request| I2[Backend API]
-        I2 -->|Query| I3[PostgreSQL in Docker]
-        I2 -->|Response| I1
+
+    subgraph FastAPIBackend["FastAPI Backend 🚀"]
+        direction TB
+        controllers[REST Controllers]
+        services[Business Logic Services]
+        repositories[Data Repositories]
+        models[SQLAlchemy Models]
+        jwtAuth[JWT Authentication]
+        class FastAPIBackend backend;
     end
-:::
 
-## **Struktur Folder Proyek**
+    subgraph Database["PostgreSQL 💾"]
+        dataSchema[Normalized Data Schema]
+        indexing[Efficient Indexing]
+        dataRetention[Data Retention Policies]
+    end
 
-Proyek ini terdiri dari beberapa folder utama:
+    subgraph FlutterApp["Flutter Mobile App 📱"]
+        direction TB
+        uiscreens[Responsive UI]
+        stateManagement[Provider/Bloc]
+        secureStorage[Secure Storage]
+        dioClient[Dio HTTP Client]
+        class FlutterApp frontend;
+    end
 
-1. **Folder assets**  
-Folder ini khusus digunakan untuk menyimpan semua aset seperti gambar, icon, logo, atau aset visual lainnya yang akan digunakan dalam aplikasi. Di dalamnya terdapat subfolder `images` yang berisi gambar logo aplikasi, yaitu file `widya_matador_logo.jpeg`. Gambar ini akan ditampilkan di halaman Welcome dan Login.
+    subgraph CloudInfra["AWS Cloud Infrastructure ☁️"]
+        ec2Instance[EC2 Instance]
+        securityGroup[Security Groups]
+        elasticIP[Elastic IP]
+        class CloudInfra cloud;
+    end
 
-2. **Folder lib**  
-Folder inti dalam proyek Flutter yang menyimpan semua kode Dart. Di dalamnya ada folder tambahan seperti:
-   - **screens**: berisi halaman aplikasi (`welcome.dart`, `login.dart`, dan `signup.dart`).
-   - **components**: berisi widget yang bersifat reusable seperti tombol (`rounded_button.dart`) dan input text (`input_field.dart`).
-   - **constants**: menyimpan nilai-nilai konstan yang digunakan secara global dalam aplikasi (`colors.dart`).
+    ESP32_1 & ESP32_2 -->|"TCP Protocol 🌐"| RPi
+    RPi -->|"Data Forwarding"| FastAPIBackend
+    FastAPIBackend <-->|"ORM Queries"| Database
+    FlutterApp <-->|"REST API Calls"| FastAPIBackend
+    CloudInfra -.-> FastAPIBackend
+    CloudInfra -.-> Database
 
----
+    linkStyle 0,1 stroke:#ff3,stroke-width:2px;
+    linkStyle 2,3,4 stroke:#0f0,stroke-width:2px;
+    linkStyle 5 stroke:#00f,stroke-width:2px;
+```
 
-## **Penjelasan File `pubspec.yaml`**
+## 🌟 Deskripsi Proyek
 
-File ini berfungsi untuk mengatur dependensi eksternal dan juga aset yang digunakan dalam aplikasi. Dalam file ini, kamu telah menambahkan beberapa dependensi penting seperti:
+Aplikasi mobile canggih untuk monitoring dan kontrol sistem IoT menggunakan Flutter, terintegrasi dengan backend FastAPI dan perangkat ESP32.
+```mermaid
+flowchart TB
+    classDef core fill:#f9d,stroke:#333,stroke-width:2px;
+    classDef data fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef presentation fill:#bfb,stroke:#333,stroke-width:2px;
+    classDef utils fill:#ff9,stroke:#333,stroke-width:2px;
 
-- **cupertino_icons**, yang menyediakan icon untuk tampilan aplikasi, khususnya tampilan gaya iOS.
-- **flutter_svg**, berguna untuk menampilkan gambar vektor berformat SVG di dalam aplikasi.
+    mainDart[main.dart]
 
-Selain dependensi, file ini juga mengatur penggunaan asset berupa gambar. Pada bagian ini, Flutter akan diberitahu bahwa folder `assets/images` berisi gambar yang siap digunakan dalam aplikasi.
+    subgraph Core["📦 Core"]
+        config[Configuration]
+        constants[Constants]
+    end
 
----
+    subgraph Data["🗃️ Data Layer"]
+        models[Models]
+        repositories[Repositories]
+        services[Services]
+    end
 
-## **Penjelasan File `main.dart`**
+    subgraph Presentation["🎨 Presentation Layer"]
+        screens[Screens]
+        widgets[Widgets]
+        themes[Themes]
+    end
 
-File `main.dart` merupakan entry point atau gerbang utama aplikasi Flutter. Di sinilah aplikasi dimulai. File ini memiliki satu fungsi utama yaitu `main()`. Fungsi `main()` tersebut menjalankan widget utama aplikasi bernama `MyApp`.
+    subgraph Utils["🛠️ Utils"]
+        validators[Validators]
+        helpers[Helpers]
+    end
 
-Kelas `MyApp` sendiri mengembalikan widget bernama `MaterialApp` yang merupakan dasar untuk membuat aplikasi dengan desain Material yang khas dari Google. Dalam `MaterialApp`, kamu menentukan beberapa hal penting seperti:
+    subgraph DataModels["📊 Data Models"]
+        userModel[User Model]
+        sensorModel[Sensor Model]
+        ledModel[LED Model]
+    end
 
-- `title`: Judul aplikasi yaitu `"Login App"`.
-- `theme`: Tema warna aplikasi (`Colors.blue` sebagai warna utama).
-- `home`: Halaman pertama yang akan muncul ketika aplikasi dijalankan yaitu halaman Welcome (`WelcomeScreen()`).
-- `debugShowCheckedModeBanner`: opsi untuk menampilkan atau menghilangkan banner debug, di sini diatur ke `false` agar tampilannya lebih bersih.
+    subgraph Services["🌐 Services"]
+        authService[Authentication Service]
+        sensorService[Sensor Data Service]
+        ledService[LED Control Service]
+    end
 
----
+    subgraph Screens["📱 Key Screens"]
+        loginScreen[Login Screen]
+        dashboardScreen[Dashboard Screen]
+        sensorDetailScreen[Sensor Detail Screen]
+        ledControlScreen[LED Control Screen]
+    end
 
-## **Penjelasan File Halaman (`screens/`)**
+    subgraph ApiHandling["🔌 API Handling"]
+        dioClient[Dio HTTP Client]
+        jwtInterceptor[JWT Interceptor]
+        errorHandler[Error Handler]
+    end
 
-Dalam folder ini, ada tiga halaman utama aplikasi, yaitu:
+    mainDart --> Core
+    mainDart --> Data
+    mainDart --> Presentation
+    mainDart --> Utils
 
-### **a. `welcome.dart`**
-Halaman ini menampilkan logo aplikasi (`widya_matador_logo.jpeg`) menggunakan widget `Image.asset`. Di bawah logo terdapat dua tombol utama yang navigasinya telah disiapkan menggunakan widget `ElevatedButton`:
+    Data --> DataModels
+    Data --> Services
+    Data --> ApiHandling
 
-- Tombol **Login**, yang mengarahkan pengguna ke halaman Login.
-- Tombol **Sign Up**, yang mengarahkan pengguna ke halaman registrasi.
+    Presentation --> Screens
+    Presentation --> widgets
+    Presentation --> themes
 
-Halaman Welcome adalah titik awal navigasi pengguna di aplikasi kamu.
+    Services --> ApiHandling
+    Screens --> widgets
+    Screens --> Services
+```
 
-### **b. `login.dart`**
-Halaman ini digunakan untuk memasukkan data login pengguna. Tampilan login memiliki:
+## 🚀 Fitur Utama
 
-- Logo aplikasi untuk branding.
-- Dua input field, yaitu email dan password, masing-masing menggunakan widget custom yang telah dibuat, yakni `InputField`. Input ini menangkap data yang dimasukkan pengguna.
-- Tombol login yang menggunakan widget `RoundedButton`. Saat ini tombol login hanya mencetak data di console untuk pengujian, namun nantinya akan terhubung ke backend API untuk autentikasi pengguna.
+- 🔐 Autentikasi JWT yang aman
+- 📊 Visualisasi real-time data sensor
+- 💡 Kontrol aktuator IoT
+- 🌐 Komunikasi dengan backend melalui REST API
 
-### **c. `signup.dart`**
-Halaman ini secara struktur mirip dengan halaman login, namun tujuannya untuk registrasi pengguna baru. Nanti akan berisi input seperti email, password, dan informasi tambahan sesuai kebutuhan aplikasi.
+## 🛠 Teknologi Utama
 
----
+| Kategori | Teknologi |
+|----------|-----------|
+| Frontend | Flutter 3.x |
+| State Management | Provider / GetX |
+| HTTP Client | Dio |
+| Autentikasi | JWT |
+| Penyimpanan | flutter_secure_storage |
 
-## **Penjelasan Folder `components` (Widget Reusable)**
+## 📂 Struktur Proyek Flutter
 
-Dalam folder ini terdapat dua komponen penting yang sering digunakan berulang-ulang di berbagai halaman aplikasi:
+```
+lib/
+├── core/
+│   ├── config/
+│   └── constants/
+├── data/
+│   ├── models/
+│   ├── repositories/
+│   └── services/
+├── presentation/
+│   ├── screens/
+│   │   ├── login_screen.dart
+│   │   ├── dashboard_screen.dart
+│   │   └── sensor_detail_screen.dart
+│   ├── widgets/
+│   │   ├── sensor_card.dart
+│   │   └── custom_button.dart
+│   └── themes/
+├── utils/
+│   ├── validators/
+│   └── helpers/
+└── main.dart
+```
 
-### **a. `rounded_button.dart`**
-Widget ini adalah tombol dengan desain custom berbentuk bulat. Tombol ini dibuat menggunakan widget dasar Flutter bernama `ElevatedButton`. Tombol ini menerima beberapa parameter:
+```mermaid
+flowchart TB
+    classDef dashboard fill:#4a90e2,color:#ffffff,stroke:#2c3e50,stroke-width:3px;
+    classDef roomTemp fill:#2ecc71,color:#ffffff,stroke:#27ae60,stroke-width:2px;
+    classDef roomHumidity fill:#3498db,color:#ffffff,stroke:#2980b9,stroke-width:2px;
+    classDef distanceSensor fill:#e74c3c,color:#ffffff,stroke:#c0392b,stroke-width:2px;
+    classDef interaction stroke-dasharray: 5 2;
+    classDef graphDisplay fill:#9b59b6,color:#ffffff,stroke:#8e44ad,stroke-width:2px;
 
-- **text** (teks tombol),
-- **press** (fungsi yang dijalankan ketika tombol ditekan),
-- **color** (warna tombol),
-- **textColor** (warna teks).
+    dashboard[🏠 Smart IoT Dashboard]
+    subgraph LivingRoom["🛋️ Ruang Tamu"]
+        direction TB
+        livingTemp["🌡️ Sensor Suhu\n25.6°C"]
+        livingHumidity["💧 Sensor Kelembaban\n65%"]
+        livingTempGraph["📊 Grafik Suhu"]
+        livingHumidityGraph["📊 Grafik Kelembaban"]
+        class livingTemp roomTemp
+        class livingHumidity roomHumidity
+        class livingTempGraph graphDisplay
+        class livingHumidityGraph graphDisplay
+    end
+    subgraph BedRoom["🛏️ Kamar Tidur"]
+        direction TB
+        bedTemp["🌡️ Sensor Suhu\n24.2°C"]
+        bedHumidity["💧 Sensor Kelembaban\n60%"]
+        bedTempGraph["📊 Grafik Suhu"]
+        bedHumidityGraph["📊 Grafik Kelembaban"]
+        class bedTemp roomTemp
+        class bedHumidity roomHumidity
+        class bedTempGraph graphDisplay
+        class bedHumidityGraph graphDisplay
+    end
+    subgraph Garage["🚗 Ruang Garage"]
+        direction TB
+        garageDistance["📏 Sensor Jarak\n3.5m"]
+        garageDistanceGraph["📊 Grafik Jarak"]
+        class garageDistance distanceSensor
+        class garageDistanceGraph graphDisplay
+    end
+    subgraph Bathroom["🚿 Kamar Mandi"]
+        direction TB
+        bathDistance["📏 Sensor Jarak\n2.1m"]
+        bathDistanceGraph["📊 Grafik Jarak"]
+        class bathDistance distanceSensor
+        class bathDistanceGraph graphDisplay
+    end
+    dashboard --> |"Monitoring Real-time"| LivingRoom
+    dashboard --> |"Monitoring Real-time"| BedRoom
+    dashboard --> |"Monitoring Real-time"| Garage
+    dashboard --> |"Monitoring Real-time"| Bathroom
+    subgraph SensorLegend["🔍 Sensor Legend"]
+        tempIcon["🌡️ Sensor Suhu"]
+        humidityIcon["💧 Sensor Kelembaban"]
+        distanceIcon["📏 Sensor Jarak"]
+        graphIcon["📊 Grafik Sensor"]
+    end
+```
 
-Keuntungan menggunakan komponen ini adalah untuk menjaga konsistensi desain dan memudahkan modifikasi desain tombol di seluruh aplikasi hanya melalui satu file saja.
+## 🔧 Konfigurasi Awal
 
-### **b. `input_field.dart`**
-Komponen ini dibuat untuk input teks seperti email atau password yang digunakan berulang-ulang. Dibangun menggunakan widget dasar Flutter bernama `TextField`. Komponen ini menerima parameter seperti:
+### Prasyarat
+- Flutter SDK 3.x
+- Dart 2.19+
+- Android Studio / VS Code
 
-- **hintText** (teks petunjuk di dalam field),
-- **icon** (ikon di sebelah kiri input),
-- **obscureText** (untuk input password),
-- **onChanged** (fungsi untuk menangkap nilai yang dimasukkan pengguna).
+### Instalasi Dependensi
+```bash
+flutter pub get
+```
 
-Keuntungan memakai widget reusable ini adalah mengurangi pengulangan kode dan menyeragamkan desain input di seluruh halaman aplikasi kamu.
+## 🔐 Autentikasi JWT
 
----
+### Alur Login
+```dart
+class AuthService {
+  Future<bool> login(String email, String password) async {
+    try {
+      final response = await _dioClient.post('/login', data: {
+        'email': email,
+        'password': password
+      });
+      
+      if (response.statusCode == 200) {
+        final token = response.data['token'];
+        await _secureStorage.write(
+          key: 'access_token', 
+          value: token
+        );
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Login error: $e');
+      return false;
+    }
+  }
+}
+```
 
-## **Penjelasan Folder `constants` (Nilai Konstan)**
+## 📡 Komunikasi API
 
-Folder ini berisi file `colors.dart`, yang mendefinisikan nilai-nilai warna utama yang digunakan aplikasi secara global. Ini bertujuan agar warna dalam aplikasi tetap konsisten dan mudah diatur jika diperlukan perubahan warna utama nantinya.
+### Konfigurasi Dio Client
+```dart
+class DioClient {
+  final Dio _dio = Dio(BaseOptions(
+    baseUrl: 'https://api.smartiot.example.com/v1',
+    connectTimeout: Duration(seconds: 5),
+    receiveTimeout: Duration(seconds: 3),
+  ));
 
-Warna utama yang digunakan adalah:
+  Future<dynamic> get(String path) async {
+    try {
+      final token = await _secureStorage.read(key: 'access_token');
+      _dio.options.headers['Authorization'] = 'Bearer $token';
+      
+      final response = await _dio.get(path);
+      return response.data;
+    } on DioError catch (e) {
+      _handleError(e);
+    }
+  }
+}
+```
 
-- **kPrimaryColor**: warna utama untuk elemen-elemen utama seperti tombol, teks yang menonjol, atau ikon utama.
-- **kPrimaryLightColor**: warna utama versi terang, biasanya digunakan untuk background atau elemen-elemen yang tidak dominan.
+## 🧪 Pengujian
 
----
+### Unit Test
+```bash
+flutter test
+```
 
-## **Cara Kerja Halaman Login dan Registrasi (Nantinya)**
+### Widget Test
+```bash
+flutter test test/widget_test.dart
+```
 
-Saat ini, halaman login dan registrasi belum terhubung ke backend. Namun secara umum, nanti akan berjalan seperti ini:
+## 📦 Build & Deployment
 
-- Pengguna memasukkan email dan password di halaman login atau registrasi.
-- Setelah pengguna menekan tombol login atau sign up, Flutter akan mengirimkan data tersebut melalui request HTTP ke backend API yang akan kamu buat (menggunakan FastAPI atau Express.js, misalnya).
-- Backend akan menerima data, memvalidasi dengan database (PostgreSQL dalam Docker), kemudian mengirimkan kembali respon berupa autentikasi sukses atau gagal.
-- Jika autentikasi sukses, pengguna akan diarahkan ke halaman utama aplikasi yang menampilkan data sensor dalam bentuk grafik atau chart.
+### Android
+```bash
+flutter build apk --release
+```
 
----
+### iOS
+```bash
+flutter build ios --release
+```
 
-## **Kesimpulan dan Langkah Berikutnya**
+## 🤝 Kontribusi
 
-Proyek Flutter ini sudah memiliki dasar UI yang baik, struktur modular yang rapi, dan telah siap untuk diintegrasikan dengan backend untuk autentikasi pengguna dan visualisasi data sensor. Langkah berikutnya yang perlu kamu lakukan adalah:
+1. Fork repositori
+2. Buat branch fitur: `git checkout -b fitur/deskripsi`
+3. Commit perubahan: `git commit -m 'Tambah fitur baru'`
+4. Push ke branch: `git push origin fitur/deskripsi`
+5. Buat Pull Request
 
-1. Membuat backend dengan REST API untuk autentikasi.
-2. Menjalankan database PostgreSQL menggunakan Docker.
-3. Menghubungkan frontend aplikasi Flutter ini dengan backend tersebut.
-4. Mengembangkan fitur visualisasi data sensor setelah login berhasil.
+## 📋 TODO List
 
-Dengan memahami secara mendalam struktur, file, dan kode dalam proyek ini, kamu sudah siap untuk langkah integrasi berikutnya.
+- [ ] Implementasi mode offline
+- [ ] Tambah grafik sensor
+- [ ] Optimize performa
+- [ ] Implementasi notifikasi push
 
----
+## 📄 Lisensi
+
+Didistribusikan di bawah MIT License.Lisensi ini bersifat fleksibel dan dapat disesuaikan melalui waktu kesepakatan. Untuk penggunaan di luar ketentuan di atas, harap hubungi pengembang utama.
+
+## 👨‍💻 Kontak
+
+**Nama Pengembang**
+- Email: afrizalnaufal7@gmail.com
